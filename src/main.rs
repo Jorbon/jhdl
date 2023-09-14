@@ -1,17 +1,14 @@
 
-mod parts;
-use parts::{Part, Pin};
-
-fn user_interface(p: &Part) {
-	
-}
+mod jhdl;
+use jhdl::Board;
 
 fn main() {
 	
-	let mut num_pins = 0;
+	let mut board = Board::new(3);
 	
-	let a = Part::and(&Pin::LocalInput(0), &Pin::LocalInput(1), &mut num_pins);
+	let a = board.and(0, 1);
+	let a2 = board.and(a, 2);
 	
-	let p = Part::Chip(parts::Chip::new(&[a], &[Pin::LocalInput(0), Pin::LocalInput(1)], &mut 0));
+	println!("{:?}", board.run(&[true, true, true]).unwrap()[a2]);
 	
 }
