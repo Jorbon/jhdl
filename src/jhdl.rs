@@ -1,12 +1,12 @@
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Board {
 	pub input_pins: usize,
 	pub pin_count: usize,
 	pub parts: Vec<Part>
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Part {
 	Gate(Gate),
 	Chip(Chip)
@@ -17,10 +17,14 @@ pub enum Gate {
 	Source(usize, bool),
 	Not(usize, usize),
 	And(usize, usize, usize),
-	Or(usize, usize, usize)
+	Or(usize, usize, usize),
+	Xor(usize, usize, usize),
+	Nand(usize, usize, usize),
+	Nor(usize, usize, usize),
+	Nxor(usize, usize, usize)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Chip {
 	pub input_map: Vec<(usize, usize)>,
 	pub output_map: Vec<(usize, usize)>,
@@ -57,6 +61,26 @@ impl Board {
 		self.pin_count += 1;
 		self.pin_count - 1
 	}
+	pub fn xor(&mut self, input1: usize, input2: usize) -> usize {
+		self.parts.push(Part::Gate(Gate::Xor(self.pin_count, input1, input2)));
+		self.pin_count += 1;
+		self.pin_count - 1
+	}
+	pub fn nand(&mut self, input1: usize, input2: usize) -> usize {
+		self.parts.push(Part::Gate(Gate::Nand(self.pin_count, input1, input2)));
+		self.pin_count += 1;
+		self.pin_count - 1
+	}
+	pub fn nor(&mut self, input1: usize, input2: usize) -> usize {
+		self.parts.push(Part::Gate(Gate::Nor(self.pin_count, input1, input2)));
+		self.pin_count += 1;
+		self.pin_count - 1
+	}
+	pub fn nxor(&mut self, input1: usize, input2: usize) -> usize {
+		self.parts.push(Part::Gate(Gate::Nxor(self.pin_count, input1, input2)));
+		self.pin_count += 1;
+		self.pin_count - 1
+	}
 	pub fn chip(&mut self, board: Board, inputs: &[usize], outputs: &[usize]) -> Vec<usize> {
 		self.parts.push(Part::Chip(Chip {
 			input_map: (0..board.input_pins).map(|i| (i, inputs[i])).collect(),
@@ -68,7 +92,7 @@ impl Board {
 		((self.pin_count - outputs.len())..self.pin_count).collect()
 	}
 	
-	pub fn run(&self, input: &[bool]) -> Result<Vec<Option<bool>>, ()> {
+	pub fn run(&self, input: &[bool], outputs: &[usize]) -> Result<Vec<Option<bool>>, ()> {
 		let mut pins = vec![None; self.pin_count];
 		for i in 0..self.input_pins {
 			pins[i] = Some(input[i]);
@@ -79,7 +103,7 @@ impl Board {
 				Part::Chip(chip) => chip.update(&mut pins)?
 			}
 		}
-		Ok(pins)
+		Ok(outputs.iter().map(|x| pins[*x]).collect())
 	}
 }
 
@@ -112,6 +136,21 @@ impl Chip {
 }
 
 
+fn gate_op<F: Fn(bool, bool) -> bool>(o: &usize, i1: &usize, i2: &usize, pins: &mut Vec<Option<bool>>, f: F) -> Result<(), ()> {
+	match pins[*i1] {
+		Some(b1) => match pins[*i2] {
+			Some(b2) => match pins[*o] {
+				Some(_) => Err(()),
+				None => {
+					pins[*o] = Some(f(b1, b2));
+					Ok(())
+				}
+			}
+			None => Err(())
+		}
+		None => Err(())
+	}
+}
 
 impl Gate {
 	pub fn update(&self, pins: &mut Vec<Option<bool>>) -> Result<(), ()> {
@@ -133,32 +172,12 @@ impl Gate {
 				}
 				None => Err(())
 			}
-			Gate::And(o, i1, i2) => match pins[*i1] {
-				Some(b1) => match pins[*i2] {
-					Some(b2) => match pins[*o] {
-						Some(_) => Err(()),
-						None => {
-							pins[*o] = Some(b1 && b2);
-							Ok(())
-						}
-					}
-					None => Err(())
-				}
-				None => Err(())
-			}
-			Gate::Or(o, i1, i2) => match pins[*i1] {
-				Some(b1) => match pins[*i2] {
-					Some(b2) => match pins[*o] {
-						Some(_) => Err(()),
-						None => {
-							pins[*o] = Some(b1 || b2);
-							Ok(())
-						}
-					}
-					None => Err(())
-				}
-				None => Err(())
-			}
+			Gate::And(o, i1, i2) => gate_op(o, i1, i2, pins, |a, b| a && b),
+			Gate::Or(o, i1, i2) => gate_op(o, i1, i2, pins, |a, b| a || b),
+			Gate::Xor(o, i1, i2) => gate_op(o, i1, i2, pins, |a, b| (a || b) && !(a && b)),
+			Gate::Nand(o, i1, i2) => gate_op(o, i1, i2, pins, |a, b| !(a && b)),
+			Gate::Nor(o, i1, i2) => gate_op(o, i1, i2, pins, |a, b| !(a || b)),
+			Gate::Nxor(o, i1, i2) => gate_op(o, i1, i2, pins, |a, b| (a && b) || !(a || b))
 		}
 	}
 }
