@@ -1,4 +1,5 @@
 
+
 #[derive(Debug, Clone)]
 pub struct Board {
 	pub input_pins: usize,
@@ -181,7 +182,3 @@ impl Gate {
 		}
 	}
 }
-
-
-
-

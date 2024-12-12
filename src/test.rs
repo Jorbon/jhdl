@@ -1,42 +1,9 @@
-
-mod jhdl;
-use jhdl::Board;
-
-
-fn get_string() -> String {
-	let mut input_text = String::new();
-	std::io::stdin().read_line(&mut input_text).unwrap();
-	input_text
-}
-
-fn get_int() -> i32 {
-	get_string().trim().parse::<i32>().unwrap_or(0)
-}
-
-fn get_char() -> u8 {
-	*get_string().as_bytes().get(0).unwrap_or(&0)
-}
-
-fn get_int_bits() -> Box<[bool]> {
-	let n = get_int();
-	(0..16).map(|i| (n >> i) & 1 > 0).collect()
-}
-
-fn int_from_bits(bits: &[Option<bool>]) -> Option<i16> {
-	let mut n = 0;
-	for i in 0..bits.len() {
-		if bits[i]? {
-			n += 1 << i;
-		}
-	}
-	Some(n)
-}
+#[cfg(test)] use crate::core::Board;
+#[cfg(test)] use crate::io::{get_char, get_int_bits, int_from_bits};
 
 
-
-
+#[test]
 fn main() {
-	
 	let mut adder = Board::new(3);
 	
 	let s1 = adder.xor(0, 1);
